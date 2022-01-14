@@ -78,12 +78,7 @@ void TestDocumentArithmeticMeanRaiting() {
     const int doc_id = 42;
     const string content = "cat in the city"s;
     const vector<int> ratings = {1, 2, 3}; // = 2
-    //const int mid_rating = std::accumulate(ratings.begin(), ratings.end(), 0) / static_cast<int>(ratings.size()); //тренажёр не принимает без numeric
-    int sum_ratings = 0;
-    for(const int rating : ratings) {
-        sum_ratings += rating;
-    }
-    const int mid_rating = sum_ratings / static_cast<int>(ratings.size());
+    const int mid_rating = (1 + 2 + 3) / 3;
     {
         SearchServer server;
         server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
@@ -119,11 +114,14 @@ void TestDocumentsSearchWithGivenStatus() {
         server.AddDocument(doc_id1, content1, DocumentStatus::ACTUAL, ratings);
         server.AddDocument(doc_id2, content2, DocumentStatus::BANNED, ratings);
         server.AddDocument(doc_id3, content2, DocumentStatus::REMOVED, ratings);
+
         const auto found_docs_ACTUAL = server.FindTopDocuments("in the"s, DocumentStatus::ACTUAL);
-        const auto found_docs_BANNED = server.FindTopDocuments("in the"s, DocumentStatus::BANNED);
-        const auto found_docs_REMOVED = server.FindTopDocuments("in the"s, DocumentStatus::REMOVED);
         ASSERT_EQUAL(found_docs_ACTUAL.size(), 1u);
+
+        const auto found_docs_BANNED = server.FindTopDocuments("in the"s, DocumentStatus::BANNED);
         ASSERT_EQUAL(found_docs_BANNED.size(), 1u);
+
+        const auto found_docs_REMOVED = server.FindTopDocuments("in the"s, DocumentStatus::REMOVED);
         ASSERT_EQUAL(found_docs_REMOVED.size(), 1u);
     }
 }
