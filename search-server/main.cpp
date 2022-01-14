@@ -24,7 +24,7 @@ void TestExcludeStopWordsFromAddedDocumentContent() {
     }
 }
 // Тест проверяет, что поисковая система исключает минус-слова
-void TestMinusWords() {
+void TestExcludeMinusWordsFromAddedDocumentContent() {
     const int doc_id = 42;
     const string content = "cat in the city"s;
     const string minus_words = "cat in the park -city"s;
@@ -39,7 +39,7 @@ void TestMinusWords() {
     }
 }
 // Если есть соответствие хотя бы по одному минус-слову, должен возвращаться пустой список слов.
-void TestMathDocument() {
+void TestExcludeReturnMatchDocumentWithMinusWords() {
     const int doc_id = 42;
     const string content = "cat in the city"s;
     //const string search_word = "in the"s;
@@ -56,7 +56,7 @@ void TestMathDocument() {
     }
 }
 // Возвращаемые при поиске документов результаты должны быть отсортированы в порядке убывания релевантности.
-void TestSortDocRelevance() {
+void TestSortDocumentTopToDownRelevance() {
     const int doc_id1 = 42;
     const int doc_id2 = 43;
     const string content1 = "cat in the city"s;
@@ -74,20 +74,26 @@ void TestSortDocRelevance() {
     }
 }
 // Рейтинг добавленного документа равен среднему арифметическому оценок документа
-void TestRaiting() {
+void TestDocumentArithmeticMeanRaiting() {
     const int doc_id = 42;
     const string content = "cat in the city"s;
     const vector<int> ratings = {1, 2, 3}; // = 2
+    //const int mid_rating = std::accumulate(ratings.begin(), ratings.end(), 0) / static_cast<int>(ratings.size()); //тренажёр не принимает без numeric
+    int sum_ratings = 0;
+    for(const int rating : ratings) {
+        sum_ratings += rating;
+    }
+    const int mid_rating = sum_ratings / static_cast<int>(ratings.size());
     {
         SearchServer server;
         server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
         const auto found_docs = server.FindTopDocuments("in the"s);
         const Document& doc = found_docs[0];
-        ASSERT_EQUAL(doc.rating, 2);
+        ASSERT_EQUAL(doc.rating, mid_rating);
     }
 }
 // Фильтрация результатов поиска с использованием предиката
-void TestPredicate() {
+void TestFilteringSearchUsingPredicate() {
     const int doc_id = 2;
     const vector<int> ratings = {1, 2, 3};
     {
@@ -100,22 +106,29 @@ void TestPredicate() {
     }
 }
 // Поиск документов, имеющих заданный статус.
-void TestStatus() {
+void TestDocumentsSearchWithGivenStatus() {
     const int doc_id1 = 42;
     const int doc_id2 = 43;
+    const int doc_id3 = 44;
     const string content1 = "cat in the city"s;
     const string content2 = "cat in the park"s;
+    const string content3 = "dog in the park"s;
     const vector<int> ratings = {1, 2, 3};
     {
         SearchServer server;
         server.AddDocument(doc_id1, content1, DocumentStatus::ACTUAL, ratings);
         server.AddDocument(doc_id2, content2, DocumentStatus::BANNED, ratings);
-        const auto found_docs = server.FindTopDocuments("in the"s, DocumentStatus::BANNED);
-        ASSERT_EQUAL(found_docs.size(), 1u);
+        server.AddDocument(doc_id3, content2, DocumentStatus::REMOVED, ratings);
+        const auto found_docs_ACTUAL = server.FindTopDocuments("in the"s, DocumentStatus::ACTUAL);
+        const auto found_docs_BANNED = server.FindTopDocuments("in the"s, DocumentStatus::BANNED);
+        const auto found_docs_REMOVED = server.FindTopDocuments("in the"s, DocumentStatus::REMOVED);
+        ASSERT_EQUAL(found_docs_ACTUAL.size(), 1u);
+        ASSERT_EQUAL(found_docs_BANNED.size(), 1u);
+        ASSERT_EQUAL(found_docs_REMOVED.size(), 1u);
     }
 }
 // Корректное вычисление релевантности найденных документов.
-void TestRelevance() {
+void TestCalculationCorrectRelevanceOfTheDocument() {
     const int doc_id1 = 42;
     const string content1 = "белый кот и модный ошейник"s;
     const string seach_string = "кот"s;
@@ -128,20 +141,25 @@ void TestRelevance() {
         server.AddDocument(doc_id1, content1, DocumentStatus::ACTUAL, ratings);
         const auto found_docs = server.FindTopDocuments(seach_string);
         const Document& doc0 = found_docs[0];
-        ASSERT_EQUAL(doc0.relevance, relevance_doc);// подсчитать
+
+        auto CompareRelevance = [doc0, relevance_doc](){
+            const double EPSILON = 1e-6;
+            return (abs(doc0.relevance - relevance_doc) < EPSILON);
+        };
+        ASSERT_HINT(CompareRelevance(), "Релевантность не совпадает."s);
     }
 }
 
 // Функция TestSearchServer является точкой входа для запуска тестов
 void TestSearchServer() {
     RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent);
-    RUN_TEST(TestMinusWords);
-    RUN_TEST(TestMathDocument);
-    RUN_TEST(TestSortDocRelevance);
-    RUN_TEST(TestRaiting);
-    RUN_TEST(TestPredicate);
-    RUN_TEST(TestStatus);
-    RUN_TEST(TestRelevance);
+    RUN_TEST(TestExcludeMinusWordsFromAddedDocumentContent);
+    RUN_TEST(TestExcludeReturnMatchDocumentWithMinusWords);
+    RUN_TEST(TestSortDocumentTopToDownRelevance);
+    RUN_TEST(TestDocumentArithmeticMeanRaiting);
+    RUN_TEST(TestFilteringSearchUsingPredicate);
+    RUN_TEST(TestDocumentsSearchWithGivenStatus);
+    RUN_TEST(TestCalculationCorrectRelevanceOfTheDocument);
 }
 
 // --------- Окончание модульных тестов поисковой системы -----------
