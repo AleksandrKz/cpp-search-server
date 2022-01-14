@@ -24,7 +24,7 @@ void TestExcludeStopWordsFromAddedDocumentContent() {
     }
 }
 // Тест проверяет, что поисковая система исключает минус-слова
-void TestExcludeMinusWordsFromAddedDocumentContent() {
+void TestExcludeDocumentsWithMinusWords() {
     const int doc_id = 42;
     const string content = "cat in the city"s;
     const string minus_words = "cat in the park -city"s;
@@ -39,7 +39,7 @@ void TestExcludeMinusWordsFromAddedDocumentContent() {
     }
 }
 // Если есть соответствие хотя бы по одному минус-слову, должен возвращаться пустой список слов.
-void TestExcludeReturnMatchDocumentWithMinusWords() {
+void TestExcludeReturnMatchListWithMinusWords() {
     const int doc_id = 42;
     const string content = "cat in the city"s;
     //const string search_word = "in the"s;
@@ -153,8 +153,8 @@ void TestCalculationCorrectRelevanceOfTheDocument() {
 // Функция TestSearchServer является точкой входа для запуска тестов
 void TestSearchServer() {
     RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent);
-    RUN_TEST(TestExcludeMinusWordsFromAddedDocumentContent);
-    RUN_TEST(TestExcludeReturnMatchDocumentWithMinusWords);
+    RUN_TEST(TestExcludeDocumentsWithMinusWords);
+    RUN_TEST(TestExcludeReturnMatchListWithMinusWords);
     RUN_TEST(TestSortDocumentTopToDownRelevance);
     RUN_TEST(TestDocumentArithmeticMeanRaiting);
     RUN_TEST(TestFilteringSearchUsingPredicate);
