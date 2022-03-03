@@ -1,4 +1,5 @@
 #include <cassert>
+#include <iterator>
 
 #include "log_duration.h"
 #include "test_example_functions.h"
@@ -40,12 +41,14 @@ void FindTopDocuments(const SearchServer& search_server, const std::string& raw_
     }
 }
 
+
 void MatchDocuments(const SearchServer& search_server, const std::string& query) {
     try {
         std::cout << "Matching for request: "s << query << std::endl;
         const int document_count = search_server.GetDocumentCount();
         for (int index = 0; index < document_count; ++index) {
-            const int document_id = search_server.GetDocumentId(index);
+            //const int document_id = search_server.GetDocumentId(index);
+            const int document_id = *(std::next(search_server.begin(), index));
             const auto [words, status] = search_server.MatchDocument(query, document_id);
             PrintMatchDocumentResult(document_id, words, status);
         }
