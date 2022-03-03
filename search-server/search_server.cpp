@@ -1,6 +1,7 @@
 #include  "search_server.h"
 
 
+
 SearchServer::SearchServer(const std::string& stop_words_text)
         : SearchServer(SplitIntoWords(stop_words_text))  // Invoke delegating constructor
                                                          // from string container
@@ -15,9 +16,11 @@ void SearchServer::AddDocument(int document_id, const std::string& document, Doc
     const double inv_word_count = 1.0 / words.size();
     for (const std::string& word : words) {
         word_to_document_freqs_[word][document_id] += inv_word_count;
+        all_documents_[document_id][word] += inv_word_count;
     }
     documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
-    document_ids_.push_back(document_id);
+    document_ids_.insert(document_id);
+
 }
     
 std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_query, DocumentStatus status) const {
@@ -34,13 +37,11 @@ int SearchServer::GetDocumentCount() const {
     return documents_.size();
 }
  
-//удалить   
-int SearchServer::GetDocumentId(int index) const {
-    return document_ids_.at(index);
-}
 
 void SearchServer::RemoveDocument(int document_id){
-    document_ids_.erase(std::find(document_ids_.begin(), document_ids_.end(), document_id));
+    document_ids_.erase(document_ids_.find(document_id));
+
+    all_documents_.erase(all_documents_.find(document_id));
 
     documents_.erase(documents_.find(document_id));
 
@@ -54,20 +55,19 @@ void SearchServer::RemoveDocument(int document_id){
 const std::map<std::string, double>& SearchServer::GetWordFrequencies(int document_id) const {
     static std::map<std::string, double> result;
     result.clear();
-    for(const auto& val : word_to_document_freqs_){
-        if(val.second.count(document_id)){
-            result[val.first] = val.second.find(document_id)->second;
-        }
+
+    if(all_documents_.count(document_id)){
+         return all_documents_.at(document_id);
     }
 
     return result;
 }
 
-std::vector<int>::const_iterator SearchServer::begin() const {
+std::set<int>::const_iterator SearchServer::begin() const {
     return document_ids_.begin();
 }
 
-std::vector<int>::const_iterator SearchServer::end() const {
+std::set<int>::const_iterator SearchServer::end() const {
     return document_ids_.end();
 }
     
@@ -162,3 +162,4 @@ SearchServer::Query SearchServer::ParseQuery(const std::string& text) const {
 double SearchServer::ComputeWordInverseDocumentFreq(const std::string& word) const {
     return std::log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
 }
+
