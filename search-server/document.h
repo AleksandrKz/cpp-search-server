@@ -1,6 +1,6 @@
 #pragma once
 
-#include<ostream>
+#include <ostream>
 
 struct Document {
     Document() = default;
