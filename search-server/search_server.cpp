@@ -30,32 +30,13 @@ void SearchServer::AddDocument(int document_id, std::string_view document, Docum
 
     document_ids_.insert(document_id);
 }
-    
-std::vector<Document> SearchServer::FindTopDocuments(const std::execution::sequenced_policy&, std::string_view raw_query, DocumentStatus status) const {
-    return FindTopDocuments(std::execution::seq, raw_query, [&status]([[maybe_unused]] int document_id, DocumentStatus document_status, [[maybe_unused]] int rating) {
-        return document_status == status;
-    });
-}
+
 std::vector<Document> SearchServer::FindTopDocuments(std::string_view raw_query, DocumentStatus status) const  {
     return FindTopDocuments(std::execution::seq, raw_query, status);
-}
-    
-std::vector<Document> SearchServer::FindTopDocuments(const std::execution::sequenced_policy&, std::string_view raw_query) const {
-    return FindTopDocuments(std::execution::seq, raw_query, DocumentStatus::ACTUAL);
 }
 
 std::vector<Document> SearchServer::FindTopDocuments(std::string_view raw_query) const {
     return FindTopDocuments(std::execution::seq, raw_query);
-}
-
-std::vector<Document> SearchServer::FindTopDocuments(const std::execution::parallel_policy&, std::string_view raw_query, DocumentStatus status) const {
-     return FindTopDocuments(std::execution::par, raw_query, [&status]([[maybe_unused]] int document_id, DocumentStatus document_status, [[maybe_unused]] int rating) {
-        return document_status == status;
-    });
- }
-
-std::vector<Document> SearchServer::FindTopDocuments(const std::execution::parallel_policy&, std::string_view raw_query) const {
-    return FindTopDocuments(std::execution::par, raw_query, DocumentStatus::ACTUAL);
 }
     
 int SearchServer::GetDocumentCount() const {
@@ -74,15 +55,13 @@ void SearchServer::RemoveDocument(const std::execution::sequenced_policy&, int d
 
     document_ids_.erase(document_id);
 
-    document_to_word_freqs_.erase(document_id);
+    documents_.erase(document_id);
 
-    documents_.erase(documents_.find(document_id));
-
-    for(auto& val : word_to_document_freqs_){
-        if(val.second.count(document_id)){
-            val.second.erase(val.second.find(document_id));
-        }
+    for(const auto& [word, _] : document_to_word_freqs_[document_id]) {
+    	word_to_document_freqs_[word].erase(document_id);
     }
+
+    document_to_word_freqs_.erase(document_id);
 }
 
 void SearchServer::RemoveDocument(const std::execution::parallel_policy&, int document_id) {
@@ -112,14 +91,13 @@ void SearchServer::RemoveDocument(const std::execution::parallel_policy&, int do
 }
 
 const std::map<std::string_view, double>& SearchServer::GetWordFrequencies(int document_id) const {
-    static std::map<std::string_view, double> result;
-    result.clear();
+    static const std::map<std::string_view, double> empty_map;
 
     if(document_to_word_freqs_.count(document_id)){
          return document_to_word_freqs_.at(document_id);
     }
 
-    return result;
+    return empty_map;
 }
 
 std::set<int>::const_iterator SearchServer::begin() const {
@@ -217,10 +195,8 @@ std::vector<std::string_view> SearchServer::SplitIntoWordsNoStop(std::string_vie
 }
     
 int SearchServer::ComputeAverageRating(const std::vector<int>& ratings) {
-    int rating_sum = 0;
-    for (const int rating : ratings) {
-        rating_sum += rating;
-    }
+    int rating_sum;
+    rating_sum = std::accumulate(ratings.begin(), ratings.end(), 0);
     return rating_sum / static_cast<int>(ratings.size());
 }
 
